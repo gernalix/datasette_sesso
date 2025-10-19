@@ -1,0 +1,14 @@
+DROP VIEW IF EXISTS come_viene_v;
+DROP VIEW IF EXISTS cruising_v;
+DROP VIEW IF EXISTS dove_sborra_v;
+DROP VIEW IF EXISTS inattivo_v;
+DROP VIEW IF EXISTS interrotto_v;
+DROP VIEW IF EXISTS io_sborro_v;
+DROP VIEW IF EXISTS luogo_v;
+DROP VIEW IF EXISTS memento_sync_state_v;
+DROP VIEW IF EXISTS partner_v;
+DROP VIEW IF EXISTS patria_v;
+DROP VIEW IF EXISTS razza_v;
+DROP VIEW IF EXISTS sega_v;
+DROP VIEW IF EXISTS sesh_v;
+DROP VIEW IF EXISTS sex_v;

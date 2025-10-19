@@ -1,0 +1,62 @@
+{
+  "settings": {
+    "default_labels": true
+  },
+  "extra_css_urls": ["/static/ds.css"],
+  "extra_js_urls": ["/static/hide_empty_cols.js"],
+  "extra_js_urls": ["/static/pretty_where.js"],
+  "extra_js_urls": ["/static/columns_from_url.js?v=1"],
+  "databases": {
+    "output": {
+      "tables": {
+        "partner": {
+          "label_column": "nome"
+        },
+        "interrotto": {
+          "label_column": "motivo"
+        },
+        "luogo": {
+          "label_column": "indirizzo"
+        },
+        "dove_sborra": {
+          "label_column": "dove"
+        },
+        "come_viene": {
+          "label_column": "come_viene"
+        },
+        "sex": {
+          "label_column": "id",
+          "foreign_keys": [
+            { "column": "partner_id", "other_table": "partner", "other_column": "id" },
+            { "column": "interrotto_id", "other_table": "interrotto", "other_column": "id" },
+            { "column": "luogo_id", "other_table": "luogo", "other_column": "id" },
+            { "column": "dove_sborra_id", "other_table": "dove_sborra", "other_column": "id" },
+            { "column": "come_viene_id", "other_table": "come_viene", "other_column": "id" },
+            { "column": "sesh_id", "other_table": "sesh", "other_column": "id" }
+          ],
+          "columns": {
+            "partner_id": { "hidden": true },
+            "interrotto_id": { "hidden": true },
+            "luogo_id": { "hidden": true },
+            "dove_sborra_id": { "hidden": true },
+            "come_viene_id": { "hidden": true },
+            "sesh_id": { "hidden": true },
+            "orgia_id": { "hidden": true }
+          }
+        },
+        "sex_v": {
+          "label_column": "id",
+          "columns": {
+            "partner_id": { "hidden": true },
+            "interrotto_id": { "hidden": true },
+            "luogo_id": { "hidden": true },
+            "dove_sborra_id": { "hidden": true },
+            "come_viene_id": { "hidden": true },
+            "sesh_id": { "hidden": true },
+            "orgia_id": { "hidden": true }
+          }
+        }
+      }
+    }
+  }
+}

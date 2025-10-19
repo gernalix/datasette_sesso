@@ -1,0 +1,79 @@
+/* Nasconde i numeretti grigi (ID delle FK accanto alle label) */
+a.subtle-id,
+small.subtle-id,
+td a.subtle-id,
+th a.subtle-id,
+td small.subtle-id,
+th small.subtle-id,
+td .subtle-id,
+th .subtle-id,
+td a[href*="_labels=off"],
+th a[href*="_labels=off"] {
+  display: none !important;
+}
+
+/* Formattazione date su due righe leggibili */
+td .dt2 {
+  display: inline-block;
+  text-align: center;
+  line-height: 1.1;
+  white-space: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+td.col-inizio, th.col-inizio,
+td.col-fine, th.col-fine {
+  min-width: 8ch;
+  word-break: keep-all;
+}
+
+/* Nasconde i numeretti grigi accanto ai link di FK (renderizzati in <em>) */
+td em {
+  display: none !important;
+}
+
+/* Fallback per eventuali altre versioni */
+th em,
+td > em,
+td a + em,
+td a + em::before,
+td a + em::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* ——— nascondi blocco schema sopra la tabella ——— */
+.content > details {            /* details immediati nel contenitore pagina */
+  display: none !important;
+}
+
+/* ——— nascondi tutto ciò che segue la tabella e non serve ——— */
+.table-wrapper ~ details,       /* Advanced export (e altri <details> sotto la tabella) */
+.table-wrapper ~ .export-links, /* link JSON/CSV + "View and edit SQL" */
+.table-wrapper ~ pre {          /* eventuale CREATE TABLE/preformatted */
+  display: none !important;
+}
+
+/* opzionale: se restano altri wrapper sotto la tabella, nascondili */
+.table-wrapper ~ .download-links,
+.table-wrapper ~ .sql,
+.table-wrapper ~ .advanced {
+  display: none !important;
+}
+
+/* ——— N ascondi il blocco schema/metadata sopra la tabella ——— */
+/* caso più comune: <h1> + <dl> */
+h1 + dl { display: none !important; }
+
+/* varianti: dl/metadata direttamente dentro il contenitore */
+.content > dl,
+.content > dl.metadata,
+.content > .metadata,
+.content > .metadata dl { 
+  display: none !important; 
+}
+
+/* fallback super-cauto: qualunque <dl> immediatamente prima della tabella */
+dl:has(+ .table-wrapper) { 
+  display: none !important; 
+}
