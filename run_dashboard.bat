@@ -1,9 +1,12 @@
 @echo off
-REM Version: 1.10
+REM Version: 1.13
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-REM 1) If datasette.exe is already in PATH, use it (fastest, avoids python/venv issues)
+REM Force UTF-8 mode so Datasette can read plugin source files on Windows without cp1252 decode errors
+set PYTHONUTF8=1
+
+REM 1) If datasette.exe is already in PATH, use it
 where datasette >nul 2>&1
 if not errorlevel 1 (
   echo [BOOT] Trovato datasette.exe in PATH: uso quello.
@@ -21,7 +24,6 @@ if not exist "%PYTHON%" (
 
 echo [BOOT] Uso Python: "%PYTHON%"
 
-REM Ensure pip exists
 echo [BOOT] Verifico pip...
 "%PYTHON%" -m pip --version
 if errorlevel 1 (
@@ -34,7 +36,6 @@ if errorlevel 1 (
   )
 )
 
-REM Check datasette module (no parentheses in ECHO inside blocks to avoid CMD parsing issues)
 echo [BOOT] Verifico se datasette e' installato per questo Python...
 "%PYTHON%" -c "import datasette" >nul 2>&1
 if errorlevel 1 (
@@ -49,7 +50,6 @@ if errorlevel 1 (
   )
 )
 
-REM Run watcher without loading PowerShell profile
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0watch_and_run.ps1"
 
 endlocal
