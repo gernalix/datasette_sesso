@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}sesso — inserimento{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/-/static/custom/sesso.css">
+{% endblock %}
+
+{% block content %}
+<h1 style="margin-top: 0.25rem;">sesso — inserimento</h1>
+
+<div class="sesso-card">
+  <form id="sessoForm" method="post" action="/-/sesso/insert" autocomplete="off">
+    <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
+    <div class="sesso-grid">
+      {% for f in fields %}
+        <div class="field">
+          <label for="{{ f.name }}">
+            <span class="label">{{ f.name }}</span>
+            {% if not f.nullable %}<span class="req">*</span>{% endif %}
+          </label>
+
+          {% if f.ui_widget == "checkbox" or f.type_key == "boolean" %}
+            <input type="checkbox" id="{{ f.name }}" name="{{ f.name }}" value="1">
+          {% elif f.ui_widget == "datetime_picker" or f.type_key == "date_time" %}
+            <input type="datetime-local" id="{{ f.name }}" name="{{ f.name }}"
+                   data-default-mode="{{ f.default_mode }}" data-default-expr="{{ f.default_expr or '' }}">
+          {% elif f.ui_widget == "date_picker" or f.type_key == "date" %}
+            <input type="date" id="{{ f.name }}" name="{{ f.name }}"
+                   data-default-mode="{{ f.default_mode }}" data-default-expr="{{ f.default_expr or '' }}">
+          {% elif f.ui_widget == "input_number" or f.type_key in ("int","real","duration") %}
+            <input type="number" id="{{ f.name }}" name="{{ f.name }}" step="any">
+          {% elif f.ui_widget == "input_url" or f.type_key == "link" %}
+            <input type="url" id="{{ f.name }}" name="{{ f.name }}" placeholder="https://...">
+          {% elif f.ui_widget in ("select","multi_select") or f.type_key in ("fk","single_choice","multiple_choice") %}
+            <select id="{{ f.name }}" name="{{ f.name }}">
+              <option value=""></option>
+              {% for c in f.choices %}
+                <option value="{{ c.value }}">{{ c.label }}</option>
+              {% endfor %}
+            </select>
+          {% elif f.ui_widget == "textarea_json" or f.type_key == "json" %}
+            <textarea id="{{ f.name }}" name="{{ f.name }}" rows="4" spellcheck="false"></textarea>
+          {% else %}
+            <input type="text" id="{{ f.name }}" name="{{ f.name }}">
+          {% endif %}
+
+          {% if f.ref_table %}
+            <div class="hint">ref: {{ f.ref_table }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn-primary">Salva (Invio)</button>
+      <a class="btn-secondary" href="/{{ db_name }}/{{ table }}">Vai alla tabella</a>
+    </div>
+
+    <div id="msg" class="msg" aria-live="polite"></div>
+  </form>
+</div>
+
+<script src="/-/static/custom/sesso.js"></script>
+{% endblock %}

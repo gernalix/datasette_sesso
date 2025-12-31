@@ -2,11 +2,13 @@
   "settings": {
     "default_labels": true
   },
-  "extra_css_urls": ["/static/ds.css"],
+  "extra_css_urls": [
+    "/-/static/app/ds.css"
+  ],
   "extra_js_urls": [
-    "/static/hide_empty_cols.js?v=1",
-    "/static/pretty_where.js?v=1",
-    "/static/columns_from_url.js?v=1"
+    "/-/static/app/hide_empty_cols.js?v=1",
+    "/-/static/app/pretty_where.js?v=1",
+    "/-/static/app/columns_from_url.js?v=1"
   ],
   "databases": {
     "output": {

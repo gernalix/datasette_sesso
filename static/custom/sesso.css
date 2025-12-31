@@ -1,0 +1,68 @@
+/* v1 */
+.sesso-card {
+  max-width: 1100px;
+  background: var(--color-box-bg, #fff);
+  border: 1px solid var(--color-border, rgba(0,0,0,0.12));
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.sesso-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px 16px;
+}
+
+.field label {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.field .req {
+  color: #b00020;
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, rgba(0,0,0,0.18));
+  background: transparent;
+}
+
+.field .hint {
+  opacity: 0.75;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid var(--color-border, rgba(0,0,0,0.18));
+}
+
+.btn-primary {
+  font-weight: 700;
+}
+
+.msg {
+  margin-top: 12px;
+  font-weight: 600;
+}
