@@ -1,66 +1,82 @@
 {% extends "base.html" %}
-
 {% block title %}sesso — inserimento{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="/-/static/custom/sesso.css">
+<style>
+/* neo-datasette v1.10 — bigger widgets, tighter layout */
+.form-wrap { max-width: 980px; }
+.h-title { margin-bottom: 6px; }
+.meta { opacity: .75; margin-bottom: 14px; }
+.grid {
+  display: grid;
+  grid-template-columns: 210px minmax(380px, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+}
+.grid label { font-weight: 800; font-size: 22px; line-height: 1.1; }
+.grid input[type="text"],
+.grid input[type="number"],
+.grid input[type="datetime-local"],
+.grid input[type="url"],
+.grid select,
+.grid textarea {
+  width: 100%;
+  font-size: 22px;
+  padding: 10px 12px;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+.grid select { appearance: auto; }
+.grid textarea { min-height: 140px; }
+.grid input[type="checkbox"]{
+  transform: scale(1.8);
+  transform-origin: left center;
+  margin: 0;
+}
+.actions { margin-top: 18px; display: flex; gap: 14px; align-items: center; }
+.actions button { font-size: 22px; font-weight: 900; padding: 10px 18px; }
+.small { font-size: 16px; opacity: .75; }
+</style>
 {% endblock %}
 
 {% block content %}
-<h1 style="margin-top: 0.25rem;">sesso — inserimento</h1>
-<div class="hint" style="margin-bottom:0.5rem;">neo-datasette v{{ neo_version }}</div>
+<div class="form-wrap">
+  <h1 class="h-title">sesso — inserimento</h1>
+  <div class="meta">neo-datasette v{{ version }}</div>
 
-<div class="sesso-card">
-  <form id="sessoForm" method="post" action="/sesso/insert" autocomplete="off">
+  <form method="post" action="/sesso/insert">
     <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
-    <div class="sesso-grid">
+
+    <div class="grid">
       {% for f in fields %}
-        <div class="field">
-          <label for="{{ f.name }}">
-            <span class="label">{{ f.name }}</span>
-            {% if not f.nullable %}<span class="req">*</span>{% endif %}
-          </label>
+        <label for="{{ f.name }}">{{ f.name }}</label>
 
-          {% if f.ui_widget == "checkbox" or f.type_key == "boolean" %}
-            <input type="checkbox" id="{{ f.name }}" name="{{ f.name }}" value="1">
-          {% elif f.ui_widget == "datetime_picker" or f.type_key == "date_time" %}
-            <input type="datetime-local" id="{{ f.name }}" name="{{ f.name }}"
-                   data-default-mode="{{ f.default_mode }}" data-default-expr="{{ f.default_expr or '' }}">
-          {% elif f.ui_widget == "date_picker" or f.type_key == "date" %}
-            <input type="date" id="{{ f.name }}" name="{{ f.name }}"
-                   data-default-mode="{{ f.default_mode }}" data-default-expr="{{ f.default_expr or '' }}">
-          {% elif f.ui_widget == "input_number" or f.type_key in ("int","real","duration") %}
-            <input type="number" id="{{ f.name }}" name="{{ f.name }}" step="any">
-          {% elif f.ui_widget == "input_url" or f.type_key == "link" %}
-            <input type="url" id="{{ f.name }}" name="{{ f.name }}" placeholder="https://...">
-          {% elif f.ui_widget in ("select","multi_select") or f.type_key in ("fk","single_choice","multiple_choice") %}
-            <select id="{{ f.name }}" name="{{ f.name }}">
-              <option value=""></option>
-              {% for c in f.choices %}
-                <option value="{{ c.value }}">{{ c.label }}</option>
-              {% endfor %}
-            </select>
-          {% elif f.ui_widget == "textarea_json" or f.type_key == "json" %}
-            <textarea id="{{ f.name }}" name="{{ f.name }}" rows="4" spellcheck="false"></textarea>
-          {% else %}
-            <input type="text" id="{{ f.name }}" name="{{ f.name }}">
-          {% endif %}
-
-          {% if f.ref_table %}
-            <div class="hint">ref: {{ f.ref_table }}</div>
-          {% endif %}
-        </div>
+        {% set w = f.ui_widget %}
+        {% if w in ["checkbox", "bool", "boolean"] %}
+          <input id="{{ f.name }}" name="{{ f.name }}" type="checkbox">
+        {% elif w in ["datetime", "datetime_local", "date_time", "timestamp"] %}
+          <input id="{{ f.name }}" name="{{ f.name }}" type="datetime-local">
+        {% elif w in ["textarea"] %}
+          <textarea id="{{ f.name }}" name="{{ f.name }}"></textarea>
+        {% elif w in ["url", "link"] %}
+          <input id="{{ f.name }}" name="{{ f.name }}" type="url" placeholder="https://">
+        {% elif w in ["select", "fk", "lookup"] and fk_options.get(f.name) %}
+          <select id="{{ f.name }}" name="{{ f.name }}">
+            <option value=""></option>
+            {% for opt in fk_options[f.name] %}
+              <option value="{{ opt.id }}">{{ opt.label }}</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <input id="{{ f.name }}" name="{{ f.name }}" type="text">
+        {% endif %}
       {% endfor %}
     </div>
 
     <div class="actions">
-      <button type="submit" class="btn-primary">Salva (Invio)</button>
-      <a class="btn-secondary" href="/{{ db_name }}/{{ table }}">Vai alla tabella</a>
+      <button type="submit">Conferma</button>
+      <span class="small">Dopo l'invio vieni reindirizzato alla tabella <b>sesso</b>.</span>
     </div>
-
-    <div id="msg" class="msg" aria-live="polite"></div>
   </form>
 </div>
-
-<script src="/-/static/custom/sesso.js"></script>
 {% endblock %}

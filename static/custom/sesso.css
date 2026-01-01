@@ -1,8 +1,88 @@
-/* neo-datasette v1.3 */
-.sesso-form { max-width: 560px; }
-.sesso-form .row { margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 6px; }
-.sesso-form label { font-weight: 600; }
-.sesso-form input, .sesso-form textarea { padding: 8px; }
-.sesso-form .actions { margin-top: 14px; }
-.sesso-form button { padding: 10px 14px; font-weight: 700; }
-.sesso-form .hint { margin-top: 12px; opacity: 0.8; font-size: 0.95em; }
+/* neo-datasette v1.9 */
+.sesso-card{
+  max-width: 1100px;
+  padding: 18px 18px 12px 18px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 14px;
+  background: white;
+}
+
+.sesso-grid{
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  column-gap: 14px;
+  row-gap: 10px;
+  align-items: center;
+}
+
+.sesso-grid .field{
+  display: contents;
+}
+
+.sesso-grid label{
+  margin: 0;
+  padding: 0;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.sesso-grid label .req{
+  color: #b00020;
+  margin-left: 6px;
+  font-weight: 900;
+}
+
+.sesso-grid input[type="text"],
+.sesso-grid input[type="url"],
+.sesso-grid input[type="number"],
+.sesso-grid input[type="date"],
+.sesso-grid input[type="datetime-local"],
+.sesso-grid select,
+.sesso-grid textarea{
+  font-size: 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.25);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sesso-grid textarea{
+  min-height: 90px;
+  resize: vertical;
+}
+
+.sesso-grid input[type="checkbox"]{
+  transform: scale(1.6);
+  transform-origin: left center;
+  width: auto;
+}
+
+.sesso-grid .hint{
+  grid-column: 2 / 3;
+  margin-top: -6px;
+  margin-bottom: 6px;
+  opacity: 0.75;
+  font-size: 14px;
+}
+
+.actions{
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.actions .btn-primary,
+.actions .btn-secondary{
+  font-size: 18px;
+  padding: 12px 18px;
+  border-radius: 10px;
+}
+
+.msg{
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 700;
+}

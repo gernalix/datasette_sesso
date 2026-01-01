@@ -1,4 +1,4 @@
-/* v1 */
+/* neo-datasette v1.9 */
 (function () {
   function pad(n) { return String(n).padStart(2, "0"); }
 
@@ -37,7 +37,7 @@
 
     msg.textContent = "OK. Apro la tabella…";
     // Requisito: premendo Invio (submit) deve visualizzare la tabella sesso
-    window.location.href = `/${data.db_name || "cassaforte"}/sesso?_sort_desc=id`;
+    window.location.href = (data && data.table_url) ? data.table_url : `/${data.db_name || "output"}/sesso?_sort_desc=id`;
   }
 
   document.addEventListener("DOMContentLoaded", () => {

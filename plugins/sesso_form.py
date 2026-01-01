@@ -1,194 +1,198 @@
-# neo-datasette version: 1.8
-# Restore widgets using DB meta tables:
-# - meta_registry_tables / meta_registry_columns / meta_column_type / meta_type_registry
-# - FK detection via PRAGMA foreign_key_list()
-# Also serve both /sesso and /-/sesso for compatibility.
+# neo-datasette version: 1.11
+# Fix:
+# - Don't accidentally pick Datasette internal DB ("_internal") when resolving db for meta tables.
+# - Choose the DB that actually contains table 'sesso' (or meta_registry_tables) before querying meta tables.
+# - Keep server-side 303 redirect to the sesso table after POST.
 
 from datasette import hookimpl
 from datasette.utils.asgi import Response
 
-LABEL_CANDIDATES = ("nome", "name", "titolo", "title", "label", "descrizione", "descr", "desc", "note")
 
-async def _table_columns(datasette, table: str):
+async def _db_has_table(db, table_name: str) -> bool:
+    try:
+        row = await db.execute(
+            "select 1 from sqlite_master where type='table' and name = ? limit 1",
+            [table_name],
+        )
+        return bool(row.rows)
+    except Exception:
+        return False
+
+
+async def _choose_db_for_sesso(datasette, request):
+    # If URL specifies a DB, use it.
+    db_name = (getattr(request, "url_vars", {}) or {}).get("database")
+    if db_name and db_name in datasette.databases:
+        return datasette.get_database(db_name), db_name
+
+    # Prefer a DB that contains 'sesso' table
+    for name, db in datasette.databases.items():
+        if name == "_internal":
+            continue
+        if await _db_has_table(db, "sesso"):
+            return db, name
+
+    # Next prefer a DB that contains meta tables
+    for name, db in datasette.databases.items():
+        if name == "_internal":
+            continue
+        if await _db_has_table(db, "meta_registry_tables"):
+            return db, name
+
+    # Fallback: first non-internal DB
+    for name, db in datasette.databases.items():
+        if name != "_internal":
+            return db, name
+
+    # Last fallback: whatever Datasette returns
     db = datasette.get_database()
-    res = await db.execute(f"PRAGMA table_info({table})")
-    return [r["name"] for r in res.rows]
+    return db, getattr(db, "name", "db")
 
-async def _fk_map(datasette, table: str):
-    db = datasette.get_database()
-    res = await db.execute(f"PRAGMA foreign_key_list({table})")
-    mp = {}
-    for r in res.rows:
-        # r: id, seq, table, from, to, on_update, on_delete, match
-        mp[r["from"]] = {"ref_table": r["table"], "ref_column": r["to"]}
-    return mp
 
-async def _choices_for_table(datasette, ref_table: str, ref_column: str = "id", limit: int = 500):
-    db = datasette.get_database()
-    cols = await _table_columns(datasette, ref_table)
-
-    label_expr = None
-    # Special-case persona: nome+cognome
-    if "nome" in cols and "cognome" in cols:
-        label_expr = "COALESCE(nome,'') || CASE WHEN cognome IS NOT NULL AND cognome!='' THEN ' '||cognome ELSE '' END"
-    else:
-        for c in LABEL_CANDIDATES:
-            if c in cols and c != ref_column:
-                label_expr = f"COALESCE({c}, '')"
-                break
-
-    if not label_expr:
-        label_expr = f"CAST({ref_column} AS TEXT)"
-
-    sql = f"SELECT {ref_column} AS value, {label_expr} AS label FROM {ref_table} ORDER BY {ref_column} LIMIT {limit}"
-    res = await db.execute(sql)
-    out = []
-    for r in res.rows:
-        out.append({"value": r["value"], "label": r["label"] if r["label"] not in (None, "") else str(r["value"])})
-    return out
-
-async def _meta_fields(datasette, table: str):
-    db = datasette.get_database()
-
-    # Find table_id
-    trow = await db.execute(
-        "SELECT id FROM meta_registry_tables WHERE name = ?",
-        [table],
+async def _meta_fields(db):
+    # Your project schema:
+    #   meta_registry_tables(table_name)
+    #   meta_registry_columns(table_id, column_name)
+    #   meta_column_type(column_id, type_key)
+    #   meta_type_registry(type_key, ui_widget, fk_table, fk_label_column)
+    table_id_row = await db.execute(
+        "select id from meta_registry_tables where table_name = 'sesso' limit 1"
     )
-    if not trow.rows:
-        return None
+    if not table_id_row.rows:
+        return []
 
-    table_id = trow.rows[0]["id"]
+    table_id = table_id_row.rows[0][0]
 
-    sql = '''
-    SELECT
-        c.id AS column_id,
-        c.name AS name,
-        ct.type_key AS type_key,
-        COALESCE(ct.nullable, 1) AS nullable,
-        tr.ui_widget AS ui_widget,
-        tr.default_mode AS default_mode,
-        tr.default_expr AS default_expr
-    FROM meta_registry_columns c
-    LEFT JOIN meta_column_type ct ON ct.column_id = c.id
-    LEFT JOIN meta_type_registry tr ON tr.type_key = ct.type_key
-    WHERE c.table_id = ?
-    ORDER BY c.id
-    '''
-    res = await db.execute(sql, [table_id])
+    cols = await db.execute(
+        "select id, column_name from meta_registry_columns where table_id = ? order by id",
+        [table_id],
+    )
+    col_ids = [r[0] for r in cols.rows]
+    col_names = {r[0]: r[1] for r in cols.rows}
+    if not col_ids:
+        return []
 
-    # Build FK map and choices for select widgets
-    fk = await _fk_map(datasette, table)
+    q_marks = ",".join(["?"] * len(col_ids))
+    ct = await db.execute(
+        f"select column_id, type_key from meta_column_type where column_id in ({q_marks})",
+        col_ids,
+    )
+    type_key_by_col = {r[0]: r[1] for r in ct.rows}
+
+    type_keys = sorted({tk for tk in type_key_by_col.values() if tk})
+    tr = {}
+    if type_keys:
+        q_marks2 = ",".join(["?"] * len(type_keys))
+        tr_rows = await db.execute(
+            f"select type_key, ui_widget, fk_table, fk_label_column "
+            f"from meta_type_registry where type_key in ({q_marks2})",
+            type_keys,
+        )
+        for r in tr_rows.rows:
+            tr[r[0]] = {"ui_widget": r[1], "fk_table": r[2], "fk_label_column": r[3]}
 
     fields = []
-    for r in res.rows:
-        name = r["name"]
-        if name.lower() == "id":
+    for col_id in col_ids:
+        name = col_names.get(col_id)
+        if not name or name.lower() == "id":
             continue
-
-        type_key = r["type_key"] or "text"
-        ui_widget = r["ui_widget"] or ""
-        nullable = int(r["nullable"]) if r["nullable"] is not None else 1
-
-        f = {
-            "name": name,
-            "type_key": type_key,
-            "ui_widget": ui_widget,
-            "nullable": nullable,
-            "default_mode": r["default_mode"],
-            "default_expr": r["default_expr"],
-            "choices": [],
-            "ref_table": None,
-            "ref_column": None,
-        }
-
-        # Detect FK targets
-        if name in fk:
-            f["ref_table"] = fk[name]["ref_table"]
-            f["ref_column"] = fk[name]["ref_column"]
-
-        # Populate choices for selects
-        if ui_widget in ("select", "multi_select") or type_key in ("fk", "single_choice", "multiple_choice"):
-            if f["ref_table"]:
-                f["choices"] = await _choices_for_table(datasette, f["ref_table"], f["ref_column"] or "id")
-            else:
-                # If no FK, but still a choice type, fall back to empty choices (or could be in a future meta table)
-                f["choices"] = []
-
-        fields.append(f)
-
+        tk = type_key_by_col.get(col_id)
+        info = tr.get(tk, {})
+        ui = info.get("ui_widget") or "text"
+        fields.append(
+            {
+                "name": name,
+                "type_key": tk,
+                "ui_widget": ui,
+                "fk_table": info.get("fk_table"),
+                "fk_label_column": info.get("fk_label_column"),
+            }
+        )
     return fields
 
-async def _insert_sesso(request, datasette, table: str = "sesso"):
-    if request.method != "POST":
-        return Response.json({"ok": False, "error": "POST required"}, status=405)
 
-    form = await request.post_vars()
+async def _fk_options(db, fk_table, label_col):
+    if not fk_table:
+        return []
+    label = label_col or "id"
+    try:
+        rows = await db.execute(f"select id, {label} as label from {fk_table} order by label")
+        return [{"id": r["id"], "label": r["label"]} for r in rows.rows]
+    except Exception:
+        rows = await db.execute(f"select id from {fk_table} order by id")
+        return [{"id": r["id"], "label": r["id"]} for r in rows.rows]
 
-    fields = await _meta_fields(datasette, table)
-    if fields is None:
-        return Response.json({"ok": False, "error": "Meta tables not configured for this table"}, status=500)
 
-    allowed = {f["name"]: f for f in fields}
+def _wants_json(request):
+    accept = (request.headers.get("accept") or "").lower()
+    return "application/json" in accept
 
-    items = []
-    present = set()
-    for k, v in (form or {}).items():
-        if k == "csrftoken":
-            continue
-        if k not in allowed:
-            continue
-        if v in (None, "", []):
-            continue
-        present.add(k)
-        items.append((k, v))
-
-    # Handle non-nullable booleans: checkbox missing means 0
-    for name, f in allowed.items():
-        if f["type_key"] == "boolean" and f["nullable"] == 0 and name not in present:
-            items.append((name, 0))
-
-    if not items:
-        return Response.json({"ok": False, "error": "No data submitted"}, status=400)
-
-    db = datasette.get_database()
-    columns = ", ".join([k for k, _ in items])
-    placeholders = ", ".join(["?"] * len(items))
-    values = [v for _, v in items]
-
-    await db.execute_write(
-        f"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
-        values,
-    )
-
-    return Response.json({"ok": True})
 
 @hookimpl
 def register_routes():
     async def sesso_form(request, datasette):
-        fields = await _meta_fields(datasette, "sesso")
-        if fields is None:
-            return Response.html("<h1>Errore</h1><p>Meta tables non trovate o non configurate per 'sesso'.</p>", status=500)
+        db, db_name = await _choose_db_for_sesso(datasette, request)
+        fields = await _meta_fields(db)
+
+        fk_options = {}
+        for f in fields:
+            if f.get("ui_widget") in ("select", "fk", "lookup") and f.get("fk_table"):
+                fk_options[f["name"]] = await _fk_options(db, f["fk_table"], f.get("fk_label_column"))
 
         html = await datasette.render_template(
             "sesso.html",
             {
                 "fields": fields,
-                "db_name": datasette.get_database().name,
-                "table": "sesso",
-                "neo_version": "1.8",
+                "fk_options": fk_options,
+                "db_name": db_name,
+                "version": "1.11",
             },
             request=request,
         )
         return Response.html(html)
 
     async def sesso_insert(request, datasette):
-        return await _insert_sesso(request, datasette, "sesso")
+        db, db_name = await _choose_db_for_sesso(datasette, request)
+        if request.method != "POST":
+            return Response.json({"ok": False, "error": "POST required"}, status=405)
+
+        form = await request.post_vars()
+
+        fields = await _meta_fields(db)
+        allowed = {f["name"] for f in fields}
+
+        items = []
+        for k, v in (form or {}).items():
+            if k == "csrftoken":
+                continue
+            if k not in allowed:
+                continue
+            if v in (None, "", []):
+                continue
+            if v == "on":
+                v = 1
+            items.append((k, v))
+
+        if not items:
+            if _wants_json(request):
+                return Response.json({"ok": False, "error": "No data submitted"}, status=400)
+            return Response.redirect("/sesso?err=1", status=303)
+
+        columns = ", ".join([k for k, _ in items])
+        placeholders = ", ".join(["?"] * len(items))
+        values = [v for _, v in items]
+
+        await db.execute_write(
+            f"insert into sesso ({columns}) values ({placeholders})",
+            values,
+        )
+
+        table_url = f"/{db_name}/sesso?_sort_desc=id"
+        if _wants_json(request):
+            return Response.json({"ok": True, "redirect": table_url})
+        return Response.redirect(table_url, status=303)
 
     return [
         (r"^/sesso$", sesso_form),
         (r"^/sesso/insert$", sesso_insert),
-        # compatibility with older template/action
-        (r"^/-/sesso$", sesso_form),
-        (r"^/-/sesso/insert$", sesso_insert),
     ]
