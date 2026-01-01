@@ -8,9 +8,10 @@
 
 {% block content %}
 <h1 style="margin-top: 0.25rem;">sesso — inserimento</h1>
+<div class="hint" style="margin-bottom:0.5rem;">neo-datasette v{{ neo_version }}</div>
 
 <div class="sesso-card">
-  <form id="sessoForm" method="post" action="/-/sesso/insert" autocomplete="off">
+  <form id="sessoForm" method="post" action="/sesso/insert" autocomplete="off">
     <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
     <div class="sesso-grid">
       {% for f in fields %}

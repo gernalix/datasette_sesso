@@ -15,6 +15,7 @@ $dbPath = Join-Path $p "data\cassaforte.db"
 $pluginsDir   = Join-Path $p "plugins"
 $templatesDir = Join-Path $p "templates"
 $staticDir    = Join-Path $p "static"
+$customDir    = Join-Path $staticDir "custom"
 
 $debounceMs = 800
 
@@ -73,7 +74,8 @@ function Start-Datasette {
       "--port", "$port",
       "--plugins-dir", $pluginsDir,
       "--template-dir", $templatesDir,
-      "--static", ("static:" + $staticDir)
+      "--static", ("static:" + $staticDir),
+      "--static", ("custom:" + $customDir)
     )
     $script:dsProc = Start-Process -NoNewWindow -PassThru $exe -ArgumentList $args
   } else {
@@ -83,7 +85,8 @@ function Start-Datasette {
       "--port", "$port",
       "--plugins-dir", $pluginsDir,
       "--template-dir", $templatesDir,
-      "--static", ("static:" + $staticDir)
+      "--static", ("static:" + $staticDir),
+      "--static", ("custom:" + $customDir)
     )
     $script:dsProc = Start-Process -NoNewWindow -PassThru $python -ArgumentList $args
   }
