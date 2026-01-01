@@ -1,12 +1,10 @@
 @echo off
-REM Version: 1.13
+REM neo-datasette version: 1.6
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-REM Force UTF-8 mode so Datasette can read plugin source files on Windows without cp1252 decode errors
 set PYTHONUTF8=1
 
-REM 1) If datasette.exe is already in PATH, use it
 where datasette >nul 2>&1
 if not errorlevel 1 (
   echo [BOOT] Trovato datasette.exe in PATH: uso quello.
@@ -14,42 +12,22 @@ if not errorlevel 1 (
   exit /b 0
 )
 
-REM 2) Otherwise, use the user-confirmed Python path
-set "PYTHON=C:\Users\seste\AppData\Local\Python\pythoncore-3.14-64\python.exe"
+set PYTHON=C:\Users\seste\AppData\Local\Python\pythoncore-3.14-64\python.exe
 if not exist "%PYTHON%" (
   echo [ERRORE] Python non trovato: "%PYTHON%"
-  pause
   exit /b 1
 )
 
 echo [BOOT] Uso Python: "%PYTHON%"
-
 echo [BOOT] Verifico pip...
-"%PYTHON%" -m pip --version
-if errorlevel 1 (
-  echo [BOOT] pip non presente: provo ensurepip...
-  "%PYTHON%" -m ensurepip --upgrade
-  if errorlevel 1 (
-    echo [ERRORE] ensurepip fallito.
-    pause
-    exit /b 1
-  )
-)
+"%PYTHON%" -m pip --version || exit /b 1
 
 echo [BOOT] Verifico se datasette e' installato per questo Python...
 "%PYTHON%" -c "import datasette" >nul 2>&1
 if errorlevel 1 (
-  echo [BOOT] Datasette non trovato per questo Python. Installo user-site...
-  "%PYTHON%" -m pip install --user datasette
-  if errorlevel 1 (
-    echo [ERRORE] Installazione Datasette fallita.
-    echo Prova manualmente:
-    echo   "%PYTHON%" -m pip install --user datasette
-    pause
-    exit /b 1
-  )
+  echo [BOOT] Datasette non trovato. Installo...
+  "%PYTHON%" -m pip install --user datasette || exit /b 1
 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0watch_and_run.ps1"
-
 endlocal

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Sesso{% endblock %}
+
+{% block extra_head %}
+<style>
+/* neo-datasette v1.4 - inline (no /-/static dependency) */
+.sesso-wrap { max-width: 860px; }
+.sesso-form { margin-top: 10px; }
+.sesso-grid { display: grid; grid-template-columns: 180px 1fr; gap: 10px 14px; align-items: start; }
+.sesso-grid label { font-weight: 700; padding-top: 6px; }
+.sesso-grid input, .sesso-grid textarea, .sesso-grid select { padding: 8px; width: 100%; }
+.sesso-grid textarea { min-height: 90px; resize: vertical; }
+.sesso-actions { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+.sesso-actions button { padding: 10px 16px; font-weight: 700; }
+.sesso-hint { margin-top: 10px; opacity: 0.85; }
+.sesso-meta { margin-top: 6px; opacity: 0.75; font-size: 0.95em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sesso-wrap">
+  <h1>Sesso</h1>
+  <div class="sesso-meta">neo-datasette v1.4</div>
+
+  <form method="post" action="/sesso/insert" class="sesso-form">
+    <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
+
+    <div class="sesso-grid">
+      {% for c in cols %}
+        <label for="{{ c.name }}">{{ c.name }}</label>
+
+        {% if c.kind == "textarea" %}
+          <textarea id="{{ c.name }}" name="{{ c.name }}" rows="3"></textarea>
+        {% elif c.kind == "number" %}
+          <input id="{{ c.name }}" name="{{ c.name }}" type="number"
+            {% for ak,av in c.attrs.items() %} {{ ak }}="{{ av }}"{% endfor %}
+          >
+        {% else %}
+          <input id="{{ c.name }}" name="{{ c.name }}" type="text">
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="sesso-actions">
+      <button type="submit">Conferma</button>
+      <span class="sesso-hint">Inviare il form completamente vuoto restituisce errore 400.</span>
+    </div>
+  </form>
+</div>
+{% endblock %}
